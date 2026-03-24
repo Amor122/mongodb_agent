@@ -1,0 +1,186 @@
+### ==============================================
+### FastAPI MongoDB Service - Full Test Suite
+### Correct Flow: Health → Write → Query → Upload → Search → Download -> Delete
+### Compatible with VS Code Rest Client / JetBrains HTTP Client
+### ==============================================
+
+### ------------------------------
+### 1. Health Check
+### ------------------------------
+GET http://localhost:8000/health
+Accept: application/json
+
+### ------------------------------
+### 2. Common Collection - Write Operations
+### Supports: insert_one, insert_one, update_one, update_many, delete_one, delete_many
+### ------------------------------
+
+#### 2.1 insert_one
+POST {{ baseUrl }}/data/write
+Content-Type: application/json
+
+{
+    "collection": "users",
+    "operation": "insert_one",
+    "data": {
+        "name": "Alice Smith",
+        "age": 28,
+        "email": "alice.smith@example.com",
+        "is_active": true
+    }
+}
+
+#### 2.2 insert_many
+POST {{ baseUrl }}/data/write
+Content-Type: application/json
+
+{
+    "collection": "products",
+    "operation": "insert_many",
+    "data": [
+        {"name": "Laptop", "price": 999.99, "category": "electronics"},
+        {"name": "Book", "price": 19.99, "category": "books"},
+        {"name": "Coffee Mug", "price": 12.50, "category": "kitchen"}
+    ]
+}
+
+#### 2.3 update_one
+POST {{ baseUrl }}/data/write
+Content-Type: application/json
+
+{
+    "collection": "users",
+    "operation": "update_one",
+    "filter": {"name": "Alice Smith"},
+    "data": {
+        "$set": {"age": 29, "email": "alice.new@example.com"}
+    },
+    "options": {"upsert": false}
+}
+
+#### 2.4 update_many with upsert
+POST {{ baseUrl }}/data/write
+Content-Type: application/json
+
+{
+    "collection": "products",
+    "operation": "update_many",
+    "filter": {"category": "books"},
+    "data": {
+        "$inc": {"price": 5}
+    },
+    "options": {"upsert": true}
+}
+
+#### 2.5 delete_one
+POST {{ baseUrl }}/data/write
+Content-Type: application/json
+
+{
+    "collection": "users",
+    "operation": "delete_one",
+    "filter": {"name": "Alice Smith"}
+}
+
+#### 2.6 delete_many
+POST {{ baseUrl }}/data/write
+Content-Type: application/json
+
+{
+    "collection": "products",
+    "operation": "delete_many",
+    "filter": {"category": "kitchen"}
+}
+
+### ------------------------------
+### 3. Common Collection - Query
+### ------------------------------
+
+#### 3.1 Query all
+POST {{ baseUrl }}/query
+Content-Type: application/json
+
+{
+  "collection": "products",
+  "filter": {}
+}
+
+#### 3.2 Exact match
+POST {{ baseUrl }}/query
+Content-Type: application/json
+
+{
+  "collection": "products",
+  "filter": { "category": "general" }
+}
+
+#### 3.3 Range query
+POST {{ baseUrl }}/query
+Content-Type: application/json
+
+{
+  "collection": "products",
+  "filter": { "price": { "$gt": 50 } }
+}
+
+#### 3.4 Fuzzy match
+POST {{ baseUrl }}/query
+Content-Type: application/json
+
+{
+  "collection": "products",
+  "filter": { "name": { "$regex": "test", "$options": "i" } }
+}
+
+### ------------------------------
+### 4. GridFS - Upload File
+### ------------------------------
+POST {{ baseUrl }}/gridfs/bucket/test_bucket/upload
+Content-Type: multipart/form-data; boundary=fileBoundary
+
+--fileBoundary
+Content-Disposition: form-data; name="file"; filename="testfile.pdf"
+Content-Type: application/pdf
+
+Sample file content for GridFS upload test
+--fileBoundary--
+
+### ------------------------------
+### 5. GridFS - Search Files
+### ------------------------------
+
+#### 5.1 Search by filename
+POST {{ baseUrl }}/gridfs/bucket/test_bucket/search
+Content-Type: application/json
+
+{
+  "filename": "testfile.pdf"
+}
+
+#### 5.2 Fuzzy filename search
+POST {{ baseUrl }}/gridfs/bucket/test_bucket/search
+Content-Type: application/json
+
+{
+  "filename": { "$regex": "test", "$options": "i" }
+}
+
+#### 5.3 List all files
+POST {{ baseUrl }}/gridfs/bucket/test_bucket/search
+Content-Type: application/json
+
+{}
+
+### ------------------------------
+### 6. GridFS - Download File
+### Replace FILE_ID with real _id from search result
+### ------------------------------
+GET {{ baseUrl }}/gridfs/bucket/test_bucket/download/{{ fileId }}
+Accept: application/octet-stream
+
+### ------------------------------
+### 7. GridFS - Delete File
+### Replace FILE_ID with real _id from search result
+### ------------------------------
+DELETE {{ baseUrl }}/gridfs/bucket/test_bucket/delete/{{ fileId }}
+Accept: application/octet-stream

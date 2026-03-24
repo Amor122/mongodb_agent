@@ -1,0 +1,24 @@
+[Unit]
+Description=GridFS FastAPI Service (Gunicorn)
+After=network.target multi-user.target
+
+[Service]
+User=root
+Group=root
+
+# ======================
+# Your working dir
+# ======================
+WorkingDirectory=/root/mongo_agent
+
+# ======================
+# Your venv path + gunicorn startup command
+# ======================
+ExecStart=/root/mongo_agent/venv/bin/gunicorn -c gunicorn_config.py app.main:app
+
+Restart=always
+RestartSec=3
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
