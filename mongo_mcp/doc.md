@@ -51,67 +51,18 @@ Add the MCP server configuration to your OpenCode config file (typically `~/.ope
 
 ```json
 {
-  "mcpServers": {
+  "mcp": {
     "mongodb": {
-      "command": "python",
-      "args": ["-m", "mongo_mcp.run"],
-      "env": {
+      "type": "local",
+      "command":["python","-m", "mongo_mcp.run"],
+      "enabled": true,
+      "environment": {
         "MONGO_API_BASE_URL": "http://localhost:8000"
-      },
-      "cwd": "C:\\Users\\Admin\\PycharmProjects\\mongo_agent"
+      }
     }
   }
 }
 ```
-
-Or with absolute Python path:
-
-```json
-{
-  "mcpServers": {
-    "mongodb": {
-      "command": "C:\\Python314\\python.exe",
-      "args": ["-m", "mongo_mcp.run", "--base-url", "http://localhost:8000"],
-      "cwd": "C:\\Users\\Admin\\PycharmProjects\\mongo_agent"
-    }
-  }
-}
-```
-
-## Configuring in Claude Desktop
-
-Edit the Claude Desktop config file:
-
-- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
-- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-
-```json
-{
-  "mcpServers": {
-    "mongodb": {
-      "command": "C:\\Python314\\python.exe",
-      "args": ["-m", "mongo_mcp.run"],
-      "env": {
-        "MONGO_API_BASE_URL": "http://localhost:8000"
-      },
-      "cwd": "C:\\Users\\Admin\\PycharmProjects\\mongo_agent"
-    }
-  }
-}
-```
-
-> **Note**: Claude Desktop requires the full Python executable path. Use the absolute path to your Python interpreter.
-
-## Configuring in Cursor
-
-1. Open Cursor → Settings → MCP
-2. Click "Add New MCP Server"
-3. Fill in:
-   - **Name**: `MongoDB`
-   - **Type**: `Command`
-   - **Command**: `python -m mongo_mcp.run`
-   - **Working Directory**: `C:\Users\Admin\PycharmProjects\mongo_agent`
-   - **Environment Variables**: `MONGO_API_BASE_URL=http://localhost:8000`
 
 ## Available Tools
 
