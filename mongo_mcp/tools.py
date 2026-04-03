@@ -1,3 +1,4 @@
+from typing import Any
 from fastmcp import FastMCP
 from .client import MongoHTTPClient
 
@@ -11,9 +12,9 @@ def register_query_tools(mcp: FastMCP, client: MongoHTTPClient):
         sort: list | None = None,
         limit: int | None = None,
         skip: int | None = None,
-    ) -> str:
+    ) -> dict:
         """Query MongoDB collection. Supports filter, projection, sort, limit, skip."""
-        import json
+        hooks.before_query(collection, filter)
         result = await client.query(
             collection=collection,
             filter=filter,
@@ -22,42 +23,42 @@ def register_query_tools(mcp: FastMCP, client: MongoHTTPClient):
             limit=limit,
             skip=skip,
         )
-        return json.dumps(result, ensure_ascii=False, indent=2)
+        return hooks.after_query(collection, result)
 
     @mcp.tool
-    async def mongo_count(collection: str, filter: dict | None = None) -> str:
+    async def mongo_count(collection: str, filter: dict | None = None) -> dict:
         """Count documents in a MongoDB collection."""
-        import json
+        hooks.before_query(collection, filter)
         result = await client.query(
             collection=collection,
             filter=filter,
             limit=0,
         )
-        return json.dumps({"total": result.get("total", 0)}, ensure_ascii=False, indent=2)
+        return hooks.after_query(collection, {"total": result.get("total", 0)})
 
 
 def register_write_tools(mcp: FastMCP, client: MongoHTTPClient):
     @mcp.tool
-    async def mongo_insert_one(collection: str, document: dict) -> str:
+    async def mongo_insert_one(collection: str, document: dict) -> dict:
         """Insert a single document into a MongoDB collection."""
-        import json
+        hooks.before_write(collection, "insert_one", document)
         result = await client.write(
             collection=collection,
             operation="insert_one",
             data=document,
         )
-        return json.dumps(result, ensure_ascii=False, indent=2)
+        return hooks.after_write(collection, "insert_one", result)
 
     @mcp.tool
-    async def mongo_insert_many(collection: str, documents: list[dict]) -> str:
+    async def mongo_insert_many(collection: str, documents: list[dict]) -> dict:
         """Insert multiple documents into a MongoDB collection."""
-        import json
+        hooks.before_write(collection, "insert_many", documents)
         result = await client.write(
             collection=collection,
             operation="insert_many",
             data=documents,
         )
-        return json.dumps(result, ensure_ascii=False, indent=2)
+        return hooks.after_write(collection, "insert_many", result)
 
     @mcp.tool
     async def mongo_update_one(
@@ -65,9 +66,9 @@ def register_write_tools(mcp: FastMCP, client: MongoHTTPClient):
         filter: dict,
         update: dict,
         upsert: bool = False,
-    ) -> str:
+    ) -> dict:
         """Update a single document in a MongoDB collection."""
-        import json
+        hooks.before_write(collection, "update_one", update)
         result = await client.write(
             collection=collection,
             operation="update_one",
@@ -75,7 +76,7 @@ def register_write_tools(mcp: FastMCP, client: MongoHTTPClient):
             data=update,
             options={"upsert": upsert} if upsert else None,
         )
-        return json.dumps(result, ensure_ascii=False, indent=2)
+        return hooks.after_write(collection, "update_one", result)
 
     @mcp.tool
     async def mongo_update_many(
@@ -83,9 +84,9 @@ def register_write_tools(mcp: FastMCP, client: MongoHTTPClient):
         filter: dict,
         update: dict,
         upsert: bool = False,
-    ) -> str:
+    ) -> dict:
         """Update multiple documents in a MongoDB collection."""
-        import json
+        hooks.before_write(collection, "update_many", update)
         result = await client.write(
             collection=collection,
             operation="update_many",
@@ -93,29 +94,29 @@ def register_write_tools(mcp: FastMCP, client: MongoHTTPClient):
             data=update,
             options={"upsert": upsert} if upsert else None,
         )
-        return json.dumps(result, ensure_ascii=False, indent=2)
+        return hooks.after_write(collection, "update_many", result)
 
     @mcp.tool
-    async def mongo_delete_one(collection: str, filter: dict) -> str:
+    async def mongo_delete_one(collection: str, filter: dict) -> dict:
         """Delete a single document from a MongoDB collection."""
-        import json
+        hooks.before_write(collection, "delete_one", None)
         result = await client.write(
             collection=collection,
             operation="delete_one",
             filter=filter,
         )
-        return json.dumps(result, ensure_ascii=False, indent=2)
+        return hooks.after_write(collection, "delete_one", result)
 
     @mcp.tool
-    async def mongo_delete_many(collection: str, filter: dict) -> str:
+    async def mongo_delete_many(collection: str, filter: dict) -> dict:
         """Delete multiple documents from a MongoDB collection."""
-        import json
+        hooks.before_write(collection, "delete_many", None)
         result = await client.write(
             collection=collection,
             operation="delete_many",
             filter=filter,
         )
-        return json.dumps(result, ensure_ascii=False, indent=2)
+        return hooks.after_write(collection, "delete_many", result)
 
 
 def register_gridfs_tools(mcp: FastMCP, client: MongoHTTPClient):
@@ -125,10 +126,10 @@ def register_gridfs_tools(mcp: FastMCP, client: MongoHTTPClient):
         filename: str,
         content_base64: str,
         content_type: str = "application/octet-stream",
-    ) -> str:
+    ) -> dict:
         """Upload a file to GridFS. Content should be base64 encoded."""
         import base64
-        import json
+        hooks.before_gridfs(bucket_name, "upload")
         content = base64.b64decode(content_base64)
         result = await client.gridfs_upload(
             bucket_name=bucket_name,
@@ -136,12 +137,12 @@ def register_gridfs_tools(mcp: FastMCP, client: MongoHTTPClient):
             content=content,
             content_type=content_type,
         )
-        return json.dumps(result, ensure_ascii=False, indent=2)
+        return hooks.after_gridfs(bucket_name, "upload", result)  # type: ignore[return-value]
 
     @mcp.tool
-    async def gridfs_search(bucket_name: str, filename_filter: str | None = None) -> str:
+    async def gridfs_search(bucket_name: str, filename_filter: str | None = None) -> list:
         """Search for files in a GridFS bucket."""
-        import json
+        hooks.before_gridfs(bucket_name, "search")
         query_filter = None
         if filename_filter:
             query_filter = {"filename": {"$regex": filename_filter}}
@@ -149,33 +150,21 @@ def register_gridfs_tools(mcp: FastMCP, client: MongoHTTPClient):
             bucket_name=bucket_name,
             query_filter=query_filter,
         )
-        return json.dumps(result, ensure_ascii=False, indent=2)
+        return hooks.after_gridfs(bucket_name, "search", result)  # type: ignore[return-value]
 
     @mcp.tool
-    async def gridfs_delete(bucket_name: str, file_id: str) -> str:
+    async def gridfs_delete(bucket_name: str, file_id: str) -> dict:
         """Delete a file from a GridFS bucket."""
-        import json
+        hooks.before_gridfs(bucket_name, "delete")
         result = await client.gridfs_delete(
             bucket_name=bucket_name,
             file_id=file_id,
         )
-        return json.dumps(result, ensure_ascii=False, indent=2)
+        return hooks.after_gridfs(bucket_name, "delete", result)  # type: ignore[return-value]
 
 
 # ============================================================
 # Predefined logic hooks - extend here for custom business logic
-# ============================================================
-# These hooks provide extension points for adding pre-defined
-# business logic without modifying the core tool implementations.
-#
-# Example usage:
-#   def before_query_hook(collection: str, filter: dict):
-#       # Add logging, validation, or transformation
-#       pass
-#
-#   def after_write_hook(result: dict):
-#       # Add notifications, caching invalidation, etc.
-#       pass
 # ============================================================
 
 class MongoHooks:
@@ -183,22 +172,22 @@ class MongoHooks:
 
     @staticmethod
     def before_query(collection: str, filter: dict | None) -> None:
-        """Called before any query operation. Override for custom logic."""
+        """Called before any query operation. Override for logging, auth checks, filter transformation."""
         pass
 
     @staticmethod
     def after_query(collection: str, result: dict) -> dict:
-        """Called after any query operation. Can transform result."""
+        """Called after any query operation. Can transform result (filtering, redaction, caching)."""
         return result
 
     @staticmethod
     def before_write(collection: str, operation: str, data: dict | list | None) -> None:
-        """Called before any write operation. Override for validation/logging."""
+        """Called before any write operation. Override for validation, audit logging."""
         pass
 
     @staticmethod
     def after_write(collection: str, operation: str, result: dict) -> dict:
-        """Called after any write operation. Can transform result."""
+        """Called after any write operation. Can transform result (notifications, cache invalidation)."""
         return result
 
     @staticmethod

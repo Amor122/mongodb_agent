@@ -15,10 +15,6 @@ class QueryService:
             limit: Optional[int] = None,
             skip: Optional[int] = None
     ) -> Dict[str, Any]:
-        collections = await self.db.list_collection_names()
-        if collection not in collections:
-            raise ValueError(f"Collection '{collection}' does not exist")
-
         # 构建查询
         query_filter = filter or {}
         cursor = self.db[collection].find(query_filter, projection)
