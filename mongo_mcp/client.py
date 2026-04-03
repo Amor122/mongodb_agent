@@ -35,7 +35,6 @@ class MongoHTTPClient:
             self._client = httpx.AsyncClient(
                 base_url=self.base_url,
                 timeout=self.timeout,
-                headers={"Content-Type": "application/json"},
             )
         return self._client
 
